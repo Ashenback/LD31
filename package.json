@@ -1,0 +1,27 @@
+{
+  "name": "LD31-Lolfest",
+  "version": "0.0.1",
+  "description": "A WebGL game using Web Audio API",
+  "main": "server.js",
+  "dependencies": {
+    "express": "*",
+    "hookshot": "*",
+    "mongoose": "*",
+    "socket.io": "*",
+    "sha1": "*"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node ld31.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ashenback/LD31.git"
+  },
+  "author": "Ashenback",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/deemidroll/digital_trip/issues"
+  },
+  "homepage": "http://ld31.askenback.se"
+}
