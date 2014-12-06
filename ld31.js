@@ -15,7 +15,7 @@ var genCookie = function () {
 var app = express();
 
 // Create server
-var server = app.listen(3300, function() {
+var server = app.listen(process.env.PORT, function() {
     console.log('Listening on port %d', server.address().port);
 });
 
@@ -42,7 +42,7 @@ app.use('/', express.static('public/'));
 app.use('/webhook', hookshot('refs/heads/master', 'git pull'));
 
 // Connect DB
-mongoose.connect('mongodb://localhost/LD31');
+mongoose.connect(process.env.MONGO_URL);
 
 var Schema = mongoose.Schema;
 
