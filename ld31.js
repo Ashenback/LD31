@@ -1,4 +1,5 @@
 var express = require('express'),
+    cookieParser = require('cookie-parser'),
     io = require('socket.io'),
     mongoose = require('mongoose'),
     hookshot = require('hookshot'),
@@ -19,28 +20,26 @@ var server = app.listen(3300, function() {
 });
 
 // Configure the app
-app.configure(function() {
-    app.use(express.cookieParser());
-    // set a cookie
-    app.use(function (req, res, next) {
-        // check if client sent cookie
-        var cookie = req.cookies.UID;
-        if (cookie === undefined) {
-            // no: gen a new cookie
-            cookie = genCookie();
-            console.log('cookie have created successfully');
-        } else {
-            // yes, cookie was already present
-            console.log('cookie exists', cookie);
-        }
-        // refresh cookie
-        res.cookie('UID', cookie, { maxAge: 900000 });
-        next(); // <-- important!
-    });
-
-    app.use('/', express.static('public/'));
-    app.use('/webhook', hookshot('refs/heads/master', 'git pull'));
+app.use(cookieParser());
+// set a cookie
+app.use(function (req, res, next) {
+    // check if client sent cookie
+    var cookie = req.cookies.UID;
+    if (cookie === undefined) {
+        // no: gen a new cookie
+        cookie = genCookie();
+        console.log('cookie have created successfully');
+    } else {
+        // yes, cookie was already present
+        console.log('cookie exists', cookie);
+    }
+    // refresh cookie
+    res.cookie('UID', cookie, { maxAge: 900000 });
+    next(); // <-- important!
 });
+
+app.use('/', express.static('public/'));
+app.use('/webhook', hookshot('refs/heads/master', 'git pull'));
 
 // Connect DB
 mongoose.connect('mongodb://localhost/LD31');

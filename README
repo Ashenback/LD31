@@ -1,0 +1,11 @@
+LD31 - Lolfest
+
+https://github.com/Ashenback/LD31
+
+TECH:
+WebGL http://en.wikipedia.org/wiki/WebGL
+THREE.js http://threejs.org/
+Web Audio API http://webaudio.github.io/web-audio-api/ (https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html)
+WebSocket http://ru.wikipedia.org/wiki/WebSocket
+socket.io http://socket.io/
+deviceOrientation http://w3c.github.io/deviceorientation/spec-source-orientation.html

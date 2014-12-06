@@ -4,6 +4,7 @@
   "description": "A WebGL game using Web Audio API",
   "main": "server.js",
   "dependencies": {
+    "cookie-parser": "*",
     "express": "*",
     "hookshot": "*",
     "mongoose": "*",
@@ -19,9 +20,5 @@
     "url": "https://github.com/Ashenback/LD31.git"
   },
   "author": "Ashenback",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/deemidroll/digital_trip/issues"
-  },
   "homepage": "http://ld31.askenback.se"
 }
