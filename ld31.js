@@ -10,12 +10,11 @@ var genCookie = function () {
     return sha1(randomNumber.substring(2, randomNumber.length));
 };
 
-
 // Set up app with Express framework
 var app = express();
 
 // Create server
-var server = app.listen(process.env.PORT, function() {
+var server = app.listen(process.env.PORT || 3000, function() {
     console.log('Listening on port %d', server.address().port);
 });
 
@@ -42,7 +41,7 @@ app.use('/', express.static('public/'));
 app.use('/webhook', hookshot('refs/heads/master', 'git pull'));
 
 // Connect DB
-mongoose.connect(process.env.MONGO_URL);
+mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost/ld31');
 
 var Schema = mongoose.Schema;
 
@@ -71,28 +70,17 @@ io.sockets.on('connection', function(socket) {
     socket.emit('welcome', {});
 
     socket.on('message', function (data) {
-
     });
 
     // send start command to game client
     socket.on('start', function(data) {
-        if(socket.gameCode && socket.gameCode in socketCodes) {
-            socketCodes[socket.gameCode].emit('start', data);
-        }
     });
 
     // send disconnect command to game client
     socket.on('disconnect', function(data) {
-        if(socket.gameCode && socket.gameCode in socketCodes) {
-            socketCodes[socket.gameCode].emit('disconnectController', data);
-        }
     });
 });
 
 // When a client disconnects...
 io.sockets.on('disconnect', function(socket) {
-    // remove game code -> socket association on disconnect
-    if(socket.gameCode && socket.gameCode in socketCodes) {
-        delete socketCodes[socket.gameCode];
-    }
 });
