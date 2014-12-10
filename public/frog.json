@@ -1,0 +1,39 @@
+{"frames": {
+
+"frog_up_jump.png":
+{
+	"frame": {"x":2,"y":2,"w":21,"h":24},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":2,"y":1,"w":21,"h":24},
+	"sourceSize": {"w":25,"h":25},
+	"pivot": {"x":0.5,"y":1}
+},
+"frog_up_land.png":
+{
+	"frame": {"x":25,"y":2,"w":21,"h":21},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":2,"y":4,"w":21,"h":21},
+	"sourceSize": {"w":25,"h":25},
+	"pivot": {"x":0.5,"y":1}
+},
+"frog_up_sit.png":
+{
+	"frame": {"x":48,"y":2,"w":23,"h":20},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":1,"y":5,"w":23,"h":20},
+	"sourceSize": {"w":25,"h":25},
+	"pivot": {"x":0.5,"y":1}
+}},
+"meta": {
+	"app": "http://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "frog.png",
+	"format": "RGBA8888",
+	"size": {"w":73,"h":28},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:e9c251cbbf390305969f3ef8b200f643:4942aad38bf88dc8c5f479855fca405e:8dde0dd0197344c2f9f9f01d8d204375$"
+}
+}

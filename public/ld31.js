@@ -1,22 +1,52 @@
-(function () {
+(function (_) {
+    PIXI.dontSayHello = true;
     function proxy(func, context) {
         return function () {
-            func.call(context || window);
+            func.apply(context || window, arguments);
         }
     }
-    var updateFuncs = [];
 
-// create an new instance of a pixi stage
+    _.mixin({
+        deepExtend: function (source, target) {
+            for (var prop in source) {
+                if (prop in target) {
+                    _.deepExtend(source[prop], target[prop]);
+                } else {
+                    target[prop] = source[prop];
+                }
+            }
+            return target;
+        }
+    });
+
+    var assetsToLoader = ['frog.json'];
+
+    // create a new loader
+    var loader = new PIXI.AssetLoader(assetsToLoader);
+
+    // use callback
+    loader.onComplete = game;
+
+    //begin load
+    loader.load();
+
+
+    // create an new instance of a pixi stage
     var stage = new PIXI.Stage(0x33CCFF);
 
-// create a renderer instance.
-    var gameWidth = 800,
-        gameHeight = 800,
-        gameAspect = gameWidth / gameHeight,
-        renderer = PIXI.autoDetectRenderer(gameWidth, gameHeight);
+    // create a renderer instance.
+    var gameAspect = 16 / 9,
+        gameWidth = 400,
+        gameHeight = gameWidth / gameAspect,
+        rendererOptions = {
+            antialias: false,
+            resolution: 1
+        },
+        renderer = PIXI.autoDetectRenderer(gameWidth, gameHeight, rendererOptions);
 
-// add the renderer view element to the DOM
+    // add the renderer view element to the DOM
     document.body.appendChild(renderer.view);
+
 
     function resize() {
         var width = window.innerWidth;
@@ -49,79 +79,250 @@
     window.onresize = resize;
     resize();
 
-    //////////////////////////////////////////////
-    //		GAME INPUT 							//
-    //////////////////////////////////////////////
-    var mouse	= {x : 0, y : 0};
-    document.addEventListener('mousemove', function (event){
-        mouse.x	= (event.clientX / window.innerWidth );
-        mouse.y	= (event.clientY / window.innerHeight);
-    }, false);
-    var keys = [];
-    document.addEventListener('keydown', function (event) {
-        keys[event.keyCode] = true;
-    });
-    document.addEventListener('keyup', function (event) {
-        keys[event.keyCode] = false;
-    });
+    var updateFuncs = [];
 
-    function createSprite(textureName) {
-    // create a texture from an image path
-        var texture = PIXI.Texture.fromImage(textureName, false, PIXI.scaleModes.NEAREST);
-    // create a new Sprite using the texture
-        return new PIXI.Sprite(texture);
-    }
-    var hippo_open = createSprite('hippo_open.png');
-    var hippo_closed = createSprite('hippo_closed.png');
+    function game() {
+        //////////////////////////////////////////////
+        //		GAME INPUT 							//
+        //////////////////////////////////////////////
+        var mouse = {x: 0, y: 0};
+        document.addEventListener('mousemove', function (event) {
+            mouse.x = (event.clientX / window.innerWidth );
+            mouse.y = (event.clientY / window.innerHeight);
+        }, false);
+        var keys = [];
+        document.addEventListener('keydown', function (event) {
+            keys[event.keyCode] = true;
+        });
+        document.addEventListener('keyup', function (event) {
+            keys[event.keyCode] = false;
+        });
 
-    hippo_open.scale.x = 3;
-    hippo_open.scale.y = 3;
-    hippo_closed.scale.x = 3;
-    hippo_closed.scale.y = 3;
-
-    var hippo = {
-        pos: new PIXI.Point(0, 0),
-        sprites: {
-            open: hippo_open,
-            closed: hippo_closed
-        },
-        currentSprite: hippo_closed,
-        ticks: 0,
-        update: function (delta, now) {
-            this.ticks++;
-            if (this.ticks % 30 === 0) {
-                stage.removeChild(this.currentSprite);
-                if (this.currentSprite === this.sprites.closed) {
-                    this.currentSprite = this.sprites.open;
-                } else {
-                    this.currentSprite = this.sprites.closed;
-                }
-                stage.addChild(this.currentSprite);
-            }
-
-            if (keys[37]) { // left
-                this.pos.x -= 1.0;
-            }
-            if (keys[38]) { // up
-                this.pos.y -= 1.0;
-            }
-            if (keys[39]) { // right
-                this.pos.x += 1.0;
-            }
-            if (keys[40]) { // down
-                this.pos.y += 1.0;
-            }
-
-            this.currentSprite.position.x = this.pos.x;
-            this.currentSprite.position.y = this.pos.y;
+        //////////////////////////////////////////////
+        //		LOAD     							//
+        //////////////////////////////////////////////
+        function createSprite(frameName, options) {
+            return _.deepExtend(PIXI.Sprite.fromImage(frameName, false, PIXI.scaleModes.NEAREST), options || {});
         }
-    };
 
-    //stage.addChild(hippo.currentSprite);
+        var Animation = function (settings) {
+            this.settings = settings || {};
+            this.name = this.settings.name;
+            this.type = this.settings.type || Animation.types.LINEAR;
+            this.frames = this.settings.frames;
+            updateFuncs.push(proxy(this.update, this));
+        };
 
-    updateFuncs.push(proxy(hippo.update, hippo));
+        Animation.types = {
+            LINEAR: 'linear',
+                PING_PONG: 'pingpong',
+                LOOP: 'loop'
+        };
+
+        Animation.prototype = {
+            name: '',
+            type: null,
+            animationSpeed: 1,
+            animationDirection: 1,
+            frames: [],
+            currentFrameIndex: 0,
+            elapsed: 0,
+            playing: false,
+            paused: false,
+            getFrame: function () {
+                if (this.currentFrameIndex >= 0 && this.currentFrameIndex < this.frames.length) {
+                    return this.frames[this.currentFrameIndex];
+                }
+                return _.extend({}, Frame.prototype);
+            },
+            getSprite: function () {
+                return this.getFrame().sprite;
+            },
+            atEnd: function () {
+                if (this.type === Animation.types.PING_PONG) {
+                    if (this.animationDirection > 0) {
+                        return this.currentFrameIndex >= this.frames.length;
+                    } else {
+                        return this.currentFrameIndex == 0;
+                    }
+                }
+
+                return this.currentFrameIndex >= this.frames.length;
+            },
+            setNext: function () {
+                stage.removeChild(this.getSprite());
+                this.currentFrameIndex += this.animationDirection;
+                if (this.atEnd()) {
+                    if (this.type === Animation.types.PING_PONG) { // change direction
+                        this.animationDirection *= -1;
+                        if (this.currentFrameIndex === this.frames.length) {
+                            this.currentFrameIndex += this.animationDirection * 2;
+                        }
+                    } else if (this.type === Animation.types.LOOP) { // loop
+                        this.currentFrameIndex = 0;
+                    } else { // LINEAR
+                        this.currentFrameIndex = this.frames.length - 1; // stop at end
+                    }
+                }
+                stage.addChild(this.getSprite());
+            },
+            stop: function () {
+                if (this.playing) {
+                    this.playing = false;
+                    this.paused = false;
+                    this.elapsed = 0;
+                    stage.removeChild(this.getSprite());
+                }
+                return this;
+            },
+            pause: function () {
+                this.playing = false;
+                this.paused = true;
+                return this;
+            },
+            start: function () {
+                if (!this.playing) {
+                    this.playing = true;
+                    if (!this.paused) {
+                        this.elapsed = 0;
+                    }
+                    this.paused = false;
+                    stage.addChild(this.getSprite());
+                }
+                return this;
+            },
+            update: function (delta, now) {
+                if (this.playing) {
+                    this.elapsed += delta * this.animationSpeed;
+                    while (this.elapsed > this.getFrame().duration) {
+                        this.elapsed -= this.getFrame().duration;
+                        this.setNext();
+                    }
+                }
+            }
+        };
+
+        var Frame = function (sprite, duration) {
+            this.sprite = sprite;
+            this.duration = duration;
+        };
+
+        Frame.prototype = {
+            sprite: null
+        };
+
+        var Entity = {
+            currentAnimation: null,
+            animations: {},
+            _init: function () {
+            },
+            _update: function () {
+            },
+            _load: function () {
+            },
+            init: function () {
+                this.tick = 0;
+                this.position = new PIXI.Point(0, 0);
+                updateFuncs.push(proxy(this.update, this));
+                this._init();
+            },
+            load: function () {
+                this._load();
+            },
+            update: function (delta, now) {
+                this.tick++;
+                this._update(delta, now);
+            },
+            addAnimation: function (animation) {
+                this.animations[animation.name] = animation;
+            },
+            setAnimation: function (animation) {
+                var newAnimation;
+                // Find new animation...
+                if (typeof animation === typeof Animation) { // by reference
+                    newAnimation = animation;
+                } else if (animation in this.animations) { // by name
+                    newAnimation = this.animations[animation];
+                }
+
+                if (newAnimation !== this.currentAnimation) {
+                    if (this.currentAnimation) {
+                        this.currentAnimation.stop();
+                    }
+                    this.currentAnimation = newAnimation;
+                    this.currentAnimation.start();
+                }
+            }
+        };
+
+
+        var frog = _.deepExtend(Entity, {
+            _init: function () {
+            },
+            _load: function () {
+                var animation = new Animation({
+                    name: 'walk_up',
+                    frames: [
+                        new Frame(createSprite('frog_up_sit.png'), 100),
+                        new Frame(createSprite('frog_up_jump.png'), 100),
+                        new Frame(createSprite('frog_up_land.png'), 100)
+                    ],
+                    type: Animation.types.LOOP
+                });
+                this.addAnimation(animation);
+
+                animation = new Animation({
+                    name: 'idle_up',
+                    frames: [
+                        new Frame(createSprite('frog_up_sit.png'), 1000)
+                    ],
+                    type: Animation.types.LINEAR
+                });
+                this.addAnimation(animation);
+
+                this.setAnimation('idle_up');
+                console.log(this.currentAnimation);
+            },
+            _update: function (delta, now) {
+                var newPos = new PIXI.Point(this.position.x, this.position.y);
+
+                if (keys[37]) { // left
+                    newPos.x -= 1.0;
+                }
+                if (keys[38]) { // up
+                    newPos.y -= 1.0;
+                }
+                if (keys[39]) { // right
+                    newPos.x += 1.0;
+                }
+                if (keys[40]) { // down
+                    newPos.y += 1.0;
+                }
+
+                var diff = new PIXI.Point(newPos.x - this.position.x, newPos.y - this.position.y);
+
+                if (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0) {
+                    this.setAnimation('walk_up');
+                } else {
+                    this.setAnimation('idle_up');
+                }
+
+                this.position.set(newPos.x, newPos.y);
+
+                if (this.currentAnimation) {
+                    var sprite = this.currentAnimation.start().getSprite();
+                    //console.log(this.currentAnimation);
+                    sprite.position = this.position;
+                }
+            }
+        });
+
+        frog.init();
+        frog.load();
+    }
 
     var lastTimeMsec = null;
+
     function animate(nowMsec) {
 
         requestAnimFrame(animate);
@@ -132,7 +333,7 @@
         lastTimeMsec = nowMsec;
 
         updateFuncs.forEach(function (updateFn) {
-            updateFn(deltaMsec / 1000, nowMsec / 1000);
+            updateFn(deltaMsec, nowMsec);
         });
 
         // render the stage
@@ -140,4 +341,5 @@
     }
 
     requestAnimFrame(animate);
-}());
+
+}(_));
