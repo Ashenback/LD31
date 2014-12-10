@@ -1,18 +1,22 @@
 (function () {
-    //////////////////////////////////////////////
-    //		SETUP                               //
-    //////////////////////////////////////////////
-    var updateFcts	= [];
-    var gameWidth = 1280;
-    var gameHeight = 720;
-    var gameAspect = gameWidth / gameHeight;
-    var scene = new THREE.Scene();
-    var camera = new THREE.OrthographicCamera( gameWidth / - 2, gameWidth / 2, gameHeight / 2, gameHeight / - 2, .1, 1000 );
-    var socket = io();
+    function proxy(func, context) {
+        return function () {
+            func.call(context || window);
+        }
+    }
+    var updateFuncs = [];
 
-    var renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
+// create an new instance of a pixi stage
+    var stage = new PIXI.Stage(0x33CCFF);
+
+// create a renderer instance.
+    var gameWidth = 800,
+        gameHeight = 800,
+        gameAspect = gameWidth / gameHeight,
+        renderer = PIXI.autoDetectRenderer(gameWidth, gameHeight);
+
+// add the renderer view element to the DOM
+    document.body.appendChild(renderer.view);
 
     function resize() {
         var width = window.innerWidth;
@@ -35,7 +39,7 @@
             }
         }
 
-        var domElement = renderer.domElement;
+        var domElement = renderer.view;
         domElement.style.width = width;
         domElement.style.height = height;
         domElement.style.top = (window.innerHeight - height) / 2;
@@ -44,78 +48,6 @@
 
     window.onresize = resize;
     resize();
-
-    //////////////////////////////////////////////
-    //		CREATE FONT                         //
-    //////////////////////////////////////////////
-    var font = {};
-    (function () {
-        var canvas	= document.createElement( 'canvas' );
-        canvas.width	= gameWidth;
-        canvas.height	= gameHeight;
-        var context	= canvas.getContext( '2d' );
-        context.lineWidth = 10;
-        context.font = "bolder 50px Verdana";
-        context.fillStyle = 'white';
-        var texture = new THREE.Texture( canvas );
-        texture.needsUpdate	= true;
-        texture.anisotropy	= 16;
-
-        var mesh;
-        var geometry	= new THREE.PlaneBufferGeometry(canvas.width, canvas.height);
-        var material	= new THREE.MeshBasicMaterial();
-        material.map	= texture;
-
-        mesh = new THREE.Mesh(geometry, material);
-        mesh.position.z	= -1;
-        scene.add(mesh);
-
-        font.canvas = canvas;
-        font.mesh = mesh;
-        font.context = context;
-        font.texture = texture;
-    }());
-
-    function drawText(text, x, y) {
-        font.context.fillText(text || '', x, y);
-        font.texture.needsUpdate = true;
-    }
-
-    function clearFont() {
-        font.context.clearRect(0, 0, font.canvas.width, font.canvas.height);
-    }
-
-    //////////////////////////////////////////////
-    //		CREATE SPRITES                      //
-    //////////////////////////////////////////////
-    function createSprite() {
-        /*
-        var canvas	= document.createElement( 'canvas' );
-        var sprite = {
-            texture: new THREE.Texture(canvas),
-            canvas: canvas,
-            mesh: {},
-            geometry: {},
-            material: new THREE.MeshBasicMaterial()
-        };
-        sprite.geometry = new THREE.PlaneBufferGeometry(canvas.width, canvas.height);
-        sprite.material = new THREE.MeshBasicMaterial();
-        mesh = new THREE.Mesh(geometry, material);
-        mesh.position.z	= -1;
-        scene.add(mesh);
-        */
-
-        var map = THREE.ImageUtils.loadTexture( '' );
-        var material = new THREE.SpriteMaterial( { map: map, color: 0xffffff} );
-        var sprite = new THREE.Sprite( material );
-
-        scene.add( sprite );
-
-        return sprite;
-    }
-
-    var player = createSprite();
-
 
     //////////////////////////////////////////////
     //		GAME INPUT 							//
@@ -132,33 +64,80 @@
     document.addEventListener('keyup', function (event) {
         keys[event.keyCode] = false;
     });
-    updateFcts.push(function(delta, now){
-        drawText('MousePos ' + mouse.x + ', ' + mouse.y, mouse.x * gameWidth, mouse.y * gameHeight);
-    });
 
-    //////////////////////////////////////////////
-    //		SCENE RENDERER                      //
-    //////////////////////////////////////////////
-    updateFcts.push(function(){
-        renderer.render( scene, camera );
-        clearFont();
-    });
+    function createSprite(textureName) {
+    // create a texture from an image path
+        var texture = PIXI.Texture.fromImage(textureName, false, PIXI.scaleModes.NEAREST);
+    // create a new Sprite using the texture
+        return new PIXI.Sprite(texture);
+    }
+    var hippo_open = createSprite('hippo_open.png');
+    var hippo_closed = createSprite('hippo_closed.png');
 
-    //////////////////////////////////////////////
-    //		LOOP     							//
-    //////////////////////////////////////////////
-    var lastTimeMsec= null;
-    requestAnimationFrame(function animate(nowMsec) {
-        // keep looping
-        requestAnimationFrame(animate);
+    hippo_open.scale.x = 3;
+    hippo_open.scale.y = 3;
+    hippo_closed.scale.x = 3;
+    hippo_closed.scale.y = 3;
+
+    var hippo = {
+        pos: new PIXI.Point(0, 0),
+        sprites: {
+            open: hippo_open,
+            closed: hippo_closed
+        },
+        currentSprite: hippo_closed,
+        ticks: 0,
+        update: function (delta, now) {
+            this.ticks++;
+            if (this.ticks % 30 === 0) {
+                stage.removeChild(this.currentSprite);
+                if (this.currentSprite === this.sprites.closed) {
+                    this.currentSprite = this.sprites.open;
+                } else {
+                    this.currentSprite = this.sprites.closed;
+                }
+                stage.addChild(this.currentSprite);
+            }
+
+            if (keys[37]) { // left
+                this.pos.x -= 1.0;
+            }
+            if (keys[38]) { // up
+                this.pos.y -= 1.0;
+            }
+            if (keys[39]) { // right
+                this.pos.x += 1.0;
+            }
+            if (keys[40]) { // down
+                this.pos.y += 1.0;
+            }
+
+            this.currentSprite.position.x = this.pos.x;
+            this.currentSprite.position.y = this.pos.y;
+        }
+    };
+
+    //stage.addChild(hippo.currentSprite);
+
+    updateFuncs.push(proxy(hippo.update, hippo));
+
+    var lastTimeMsec = null;
+    function animate(nowMsec) {
+
+        requestAnimFrame(animate);
+
         // measure time
         lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
         var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
         lastTimeMsec = nowMsec;
-        // call each update function
-        updateFcts.forEach(function (updateFn) {
-            updateFn(deltaMsec / 1000, nowMsec / 1000);
-        })
-    });
 
+        updateFuncs.forEach(function (updateFn) {
+            updateFn(deltaMsec / 1000, nowMsec / 1000);
+        });
+
+        // render the stage
+        renderer.render(stage);
+    }
+
+    requestAnimFrame(animate);
 }());
