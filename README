@@ -4,7 +4,7 @@ https://github.com/Ashenback/LD31
 
 TECH:
 WebGL http://en.wikipedia.org/wiki/WebGL
-PIXI.js http://pixijs.net/
+PIXI.js http://pixijs.com/
 Web Audio API http://webaudio.github.io/web-audio-api/ (https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html)
 WebSocket http://ru.wikipedia.org/wiki/WebSocket
 socket.io http://socket.io/
