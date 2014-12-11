@@ -150,7 +150,7 @@
                 return this.currentFrameIndex >= this.frames.length;
             },
             setNext: function () {
-                stage.removeChild(this.getSprite());
+                this.parent.root.removeChild(this.getSprite());
                 this.currentFrameIndex += this.animationDirection;
                 if (this.atEnd()) {
                     if (this.type === Animation.types.PING_PONG) { // change direction
@@ -164,14 +164,14 @@
                         this.currentFrameIndex = this.frames.length - 1; // stop at end
                     }
                 }
-                stage.addChild(this.getSprite());
+                this.parent.root.addChild(this.getSprite());
             },
             stop: function () {
                 if (this.playing) {
                     this.playing = false;
                     this.paused = false;
                     this.elapsed = 0;
-                    stage.removeChild(this.getSprite());
+                    this.parent.root.removeChild(this.getSprite());
                 }
                 return this;
             },
@@ -187,7 +187,7 @@
                         this.elapsed = 0;
                     }
                     this.paused = false;
-                    stage.addChild(this.getSprite());
+                    this.parent.root.addChild(this.getSprite());
                 }
                 return this;
             },
@@ -222,7 +222,9 @@
             },
             init: function () {
                 this.tick = 0;
-                this.position = new PIXI.Point(0, 0);
+                this.root = new PIXI.DisplayObjectContainer();
+                stage.addChild(this.root);
+                this.position = this.root.position;
                 updateFuncs.push(proxy(this.update, this));
                 this._init();
             },
@@ -235,6 +237,7 @@
             },
             addAnimation: function (animation) {
                 this.animations[animation.name] = animation;
+                animation.parent = this;
             },
             setAnimation: function (animation) {
                 var newAnimation;
@@ -308,12 +311,6 @@
                 }
 
                 this.position.set(newPos.x, newPos.y);
-
-                if (this.currentAnimation) {
-                    var sprite = this.currentAnimation.start().getSprite();
-                    //console.log(this.currentAnimation);
-                    sprite.position = this.position;
-                }
             }
         });
 
