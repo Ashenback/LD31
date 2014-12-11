@@ -85,6 +85,26 @@
         //////////////////////////////////////////////
         //		GAME INPUT 							//
         //////////////////////////////////////////////
+        var inputHandler = (function () {
+            var inputEventTarget = function(){};
+            PIXI.EventTarget.mixin(inputEventTarget.prototype);
+
+            var _eventTarget = new inputEventTarget(),
+                touchPos = new PIXI.Point(),
+                mousePos = new PIXI.Point(),
+                keys = [],
+                onEvent = function (data) {
+                    _eventTarget.emit(data.originalEvent.type, data);
+                };
+
+            // Add Event handler listener
+            stage.mousedown = stage.touchstart = stage.mouseup = stage.mouseupoutside = stage.touchend = stage.touchendoutside = stage.mousemove = stage.touchmove = onEvent;
+
+            return _eventTarget;
+        })();
+
+
+        // Desktop
         var mouse = {x: 0, y: 0};
         document.addEventListener('mousemove', function (event) {
             mouse.x = (event.clientX / window.innerWidth );
@@ -261,6 +281,9 @@
 
         var frog = _.deepExtend(Entity, {
             _init: function () {
+                inputHandler.on('mousedown', proxy(function (data) {
+                    console.log('frog on mouse down', data);
+                }, this));
             },
             _load: function () {
                 var animation = new Animation({
