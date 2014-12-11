@@ -94,11 +94,34 @@
                 mousePos = new PIXI.Point(),
                 keys = [],
                 onEvent = function (data) {
-                    _eventTarget.emit(data.originalEvent.type, data);
+                    var type = data.originalEvent.type, compositeType;
+                    _eventTarget.emit(type, data);
+                    switch(type) {
+                        case 'mousedown':
+                        case 'touchstart':
+                            compositeType = 'clickstart';
+                            break;
+                        case 'mouseup':
+                        case 'mouseupoutside':
+                        case 'touchend':
+                        case 'touchendoutside':
+                            compositeType = 'clickend';
+                            break;
+                        case 'mousemove':
+                        case 'touchmove':
+                            compositeType = 'drag';
+                            break;
+                    }
+                    if (compositeType) {
+                        _eventTarget.emit(compositeType, data);
+                    }
                 };
 
-            // Add Event handler listener
-            stage.mousedown = stage.touchstart = stage.mouseup = stage.mouseupoutside = stage.touchend = stage.touchendoutside = stage.mousemove = stage.touchmove = onEvent;
+            // Add Event handler listener to all events :)
+            stage.mousedown = stage.touchstart =
+            stage.mouseup = stage.mouseupoutside =
+            stage.touchend = stage.touchendoutside =
+            stage.mousemove = stage.touchmove = onEvent;
 
             return _eventTarget;
         })();
@@ -280,10 +303,21 @@
 
 
         var frog = _.deepExtend(Entity, {
+            target: new PIXI.Point(),
+            follow: false,
             _init: function () {
-                inputHandler.on('mousedown', proxy(function (data) {
-                    console.log('frog on mouse down', data);
+                inputHandler.on('clickstart', proxy(function (event) {
+                    this.target.set(event.data.global.x, event.data.global.y);
+                    this.follow = true;
                 }, this));
+                inputHandler.on('clickend', proxy(function (event) {
+                    this.follow = false;
+                }, this));
+                inputHandler.on('drag', proxy(function (event) {
+                    this.target.set(event.data.global.x, event.data.global.y);
+                }, this));
+                this.root.pivot.set(12.5, 12.5);
+                this.position.set(100, 100);
             },
             _load: function () {
                 var animation = new Animation({
@@ -310,30 +344,23 @@
                 console.log(this.currentAnimation);
             },
             _update: function (delta, now) {
-                var newPos = new PIXI.Point(this.position.x, this.position.y);
 
-                if (keys[37]) { // left
-                    newPos.x -= 1.0;
-                }
-                if (keys[38]) { // up
-                    newPos.y -= 1.0;
-                }
-                if (keys[39]) { // right
-                    newPos.x += 1.0;
-                }
-                if (keys[40]) { // down
-                    newPos.y += 1.0;
-                }
+                this.root.rotation = Math.atan2(this.target.x - this.position.x, this.position.y - this.target.y);
 
-                var diff = new PIXI.Point(newPos.x - this.position.x, newPos.y - this.position.y);
+                var diff = new PIXI.Point(this.position.x - this.target.x, this.position.y - this.target.y);
 
-                if (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0) {
+                if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
                     this.setAnimation('walk_up');
+
+                    var newPos = new PIXI.Point(this.position.x, this.position.y);
+                    newPos.x += Math.sin(this.root.rotation) * 2.0;
+                    newPos.y -= Math.cos(this.root.rotation) * 2.0;
+                    this.position.set(newPos.x, newPos.y);
                 } else {
                     this.setAnimation('idle_up');
                 }
 
-                this.position.set(newPos.x, newPos.y);
+
             }
         });
 
