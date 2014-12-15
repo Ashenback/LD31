@@ -1,5 +1,6 @@
 (function (_) {
     PIXI.dontSayHello = true;
+
     function proxy(func, context) {
         return function () {
             func.apply(context || window, arguments);
@@ -158,8 +159,8 @@
 
         Animation.types = {
             LINEAR: 'linear',
-                PING_PONG: 'pingpong',
-                LOOP: 'loop'
+            PING_PONG: 'pingpong',
+            LOOP: 'loop'
         };
 
         Animation.prototype = {
@@ -254,58 +255,80 @@
             sprite: null
         };
 
-        var Entity = {
-            currentAnimation: null,
-            animations: {},
-            _init: function () {
+        var Entity = function () {
+            this.currentAnimation = null;
+            this.animations = {};
+        };
+        Entity.prototype.constructor = Entity;
+        Object.defineProperty(Entity.prototype, 'x', {
+            get: function () {
+                return this.root.position.x;
             },
-            _update: function () {
+            set: function (value) {
+                this.root.position.x = value;
+            }
+        });
+        Object.defineProperty(Entity.prototype, 'y', {
+            get: function () {
+                return this.root.position.y;
             },
-            _load: function () {
+            set: function (value) {
+                this.root.position.y = value;
+            }
+        });
+        Object.defineProperty(Entity.prototype, 'rotation', {
+            get: function () {
+                return this.root.rotation;
             },
-            init: function () {
-                this.tick = 0;
-                this.root = new PIXI.DisplayObjectContainer();
-                stage.addChild(this.root);
-                this.position = this.root.position;
-                updateFuncs.push(proxy(this.update, this));
-                this._init();
-            },
-            load: function () {
-                this._load();
-            },
-            update: function (delta, now) {
-                this.tick++;
-                this._update(delta, now);
-            },
-            addAnimation: function (animation) {
-                this.animations[animation.name] = animation;
-                animation.parent = this;
-            },
-            setAnimation: function (animation) {
-                var newAnimation;
-                // Find new animation...
-                if (typeof animation === typeof Animation) { // by reference
-                    newAnimation = animation;
-                } else if (animation in this.animations) { // by name
-                    newAnimation = this.animations[animation];
-                }
+            set: function (value) {
+                this.root.rotation = value;
+            }
+        });
+        Entity.prototype._init = function () {};
+        Entity.prototype._update = function () {};
+        Entity.prototype._load = function () {};
+        Entity.prototype.init = function () {
+            this.tick = 0;
+            this.root = new PIXI.DisplayObjectContainer();
+            stage.addChild(this.root);
+            this.position = this.root.position;
+            updateFuncs.push(proxy(this.update, this));
+            this._init();
+        };
+        Entity.prototype.load = function () {
+            this._load();
+        };
+        Entity.prototype.update = function (delta, now) {
+            this.tick++;
+            this._update(delta, now);
+        };
+        Entity.prototype.addAnimation = function (animation) {
+            this.animations[animation.name] = animation;
+            animation.parent = this;
+        };
+        Entity.prototype.setAnimation = function (animation) {
+            var newAnimation;
+            // Find new animation...
+            if (typeof animation === typeof Animation) { // by reference
+                newAnimation = animation;
+            } else if (animation in this.animations) { // by name
+                newAnimation = this.animations[animation];
+            }
 
-                if (newAnimation !== this.currentAnimation) {
-                    if (this.currentAnimation) {
-                        this.currentAnimation.stop();
-                    }
-                    this.currentAnimation = newAnimation;
-                    this.currentAnimation.start();
+            if (newAnimation !== this.currentAnimation) {
+                if (this.currentAnimation) {
+                    this.currentAnimation.stop();
                 }
+                this.currentAnimation = newAnimation;
+                this.currentAnimation.start();
             }
         };
 
 
-        var frog = _.deepExtend(Entity, {
-            target: new PIXI.Point(),
-            follow: false,
-            _init: function () {
+        var frog = new Entity();
+            frog._init = function () {
+                this.target = new PIXI.Point();
+                this.follow = false;
                 inputHandler.on('clickstart', proxy(function (event) {
                     this.target.set(event.data.global.x, event.data.global.y);
                     this.follow = true;
@@ -318,8 +341,8 @@
                 }, this));
                 this.root.pivot.set(12.5, 12.5);
                 this.position.set(100, 100);
-            },
-            _load: function () {
+            };
+            frog._load = function () {
                 var animation = new Animation({
                     name: 'walk_up',
                     frames: [
@@ -342,27 +365,27 @@
 
                 this.setAnimation('idle_up');
                 console.log(this.currentAnimation);
-            },
-            _update: function (delta, now) {
+            };
+            frog._update = function (delta, now) {
 
-                this.root.rotation = Math.atan2(this.target.x - this.position.x, this.position.y - this.target.y);
+                var dir = Math.atan2(this.target.x - this.x, this.y - this.target.y);
 
-                var diff = new PIXI.Point(this.position.x - this.target.x, this.position.y - this.target.y);
+                if (this.rotation < dir) {
+                    this.rotation += Math.PI / 4;
+                } else {
+                    this.rotation -= Math.PI / 4;
+                }
+
+                var diff = new PIXI.Point(this.x - this.target.x, this.y - this.target.y);
 
                 if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
                     this.setAnimation('walk_up');
-
-                    var newPos = new PIXI.Point(this.position.x, this.position.y);
-                    newPos.x += Math.sin(this.root.rotation) * 2.0;
-                    newPos.y -= Math.cos(this.root.rotation) * 2.0;
-                    this.position.set(newPos.x, newPos.y);
+                    this.x += Math.sin(this.root.rotation) * 2.0;
+                    this.y -= Math.cos(this.root.rotation) * 2.0;
                 } else {
                     this.setAnimation('idle_up');
                 }
-
-
-            }
-        });
+            };
 
         frog.init();
         frog.load();
