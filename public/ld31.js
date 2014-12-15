@@ -370,11 +370,7 @@
 
                 var dir = Math.atan2(this.target.x - this.x, this.y - this.target.y);
 
-                if (this.rotation < dir) {
-                    this.rotation += Math.PI / 4;
-                } else {
-                    this.rotation -= Math.PI / 4;
-                }
+                this.rotation += (dir - this.rotation) * 0.1;
 
                 var diff = new PIXI.Point(this.x - this.target.x, this.y - this.target.y);
 
