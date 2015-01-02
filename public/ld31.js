@@ -36,11 +36,12 @@
     var stage = new PIXI.Stage(0x33CCFF);
 
     // create a renderer instance.
-    var gameAspect = 16 / 9,
-        gameWidth = 400,
-        gameHeight = gameWidth / gameAspect,
+    var
+        gameWidth = window.innerWidth,
+        gameHeight = window.innerHeight,
         rendererOptions = {
             antialias: false,
+            autoResize: false,
             resolution: 1
         },
         renderer = PIXI.autoDetectRenderer(gameWidth, gameHeight, rendererOptions);
@@ -50,31 +51,7 @@
 
 
     function resize() {
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-
-
-        if (width > height) {
-            height = window.innerHeight;
-            width = height * gameAspect;
-            if (width > window.innerWidth) {
-                width = window.innerWidth;
-                height = width / gameAspect;
-            }
-        } else {
-            width = window.innerWidth;
-            height = width / gameAspect;
-            if (height > window.innerHeight) {
-                height = window.innerHeight;
-                width = height * gameAspect;
-            }
-        }
-
-        var domElement = renderer.view;
-        domElement.style.width = width;
-        domElement.style.height = height;
-        domElement.style.top = (window.innerHeight - height) / 2;
-        domElement.style.left = (window.innerWidth - width) / 2;
+        renderer.resize(window.innerWidth, window.innerHeight);
     }
 
     window.onresize = resize;
@@ -341,6 +318,7 @@
                 }, this));
                 this.root.pivot.set(12.5, 12.5);
                 this.position.set(100, 100);
+                this.turnSpeed = 3.0;
             };
             frog._load = function () {
                 var animation = new Animation({
@@ -364,15 +342,41 @@
                 this.addAnimation(animation);
 
                 this.setAnimation('idle_up');
-                console.log(this.currentAnimation);
+
+                this.namePlate = new PIXI.Text('Frog');
+                //this.namePlate.position.x = 10;
+                //this.namePlate.position.y = 20;
+                this.namePlate.position = this.position;
+                this.namePlate.anchor.x = 0.5;
+                //this.root.addChild(this.namePlate);
+                stage.addChild(this.namePlate);
             };
             frog._update = function (delta, now) {
+                var diff = new PIXI.Point(this.target.x - this.x, this.target.y - this.y);
+                var dir = Math.atan2(diff.y, diff.x) + Math.PI/2;
 
-                var dir = Math.atan2(this.target.x - this.x, this.y - this.target.y);
+                if (dir < 0) {
+                    dir += Math.PI*2;
+                }
+                if (dir > Math.PI*2) {
+                    dir -= Math.PI*2;
+                }
 
-                this.rotation += (dir - this.rotation) * 0.1;
+                var angle = dir - this.rotation;
 
-                var diff = new PIXI.Point(this.x - this.target.x, this.y - this.target.y);
+                if (angle > Math.PI) {
+                    this.rotation += Math.PI * 2;
+                    angle -= Math.PI * 2;
+                }
+
+                if (angle < -Math.PI) {
+                    this.rotation -= Math.PI * 2;
+                    angle += Math.PI * 2;
+                }
+
+                this.rotation += angle * this.turnSpeed * delta / 1000.0;
+
+                this.namePlate.setText('rot:' + this.rotation.toFixed(2) + '\nangle:' + angle.toFixed(2) + '\ndir:' + dir.toFixed(2));
 
                 if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
                     this.setAnimation('walk_up');
