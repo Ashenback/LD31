@@ -376,8 +376,6 @@
 
                 this.rotation += angle * this.turnSpeed * delta / 1000.0;
 
-                this.namePlate.setText('rot:' + this.rotation.toFixed(2) + '\nangle:' + angle.toFixed(2) + '\ndir:' + dir.toFixed(2));
-
                 if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
                     this.setAnimation('walk_up');
                     this.x += Math.sin(this.root.rotation) * 2.0;
