@@ -20,7 +20,14 @@
         }
     });
 
-    var assetsToLoader = ['frog.json'];
+    var assetsToLoader = [
+        'frog.json',
+        'lilypad_01.png',
+        'lilypad_02.png',
+        'lilypad_f_01.png',
+        'lilypad_f_02.png',
+        'nasty_boss.png'
+    ];
 
     // create a new loader
     var loader = new PIXI.AssetLoader(assetsToLoader);
@@ -30,7 +37,6 @@
 
     //begin load
     loader.load();
-
 
     // create an new instance of a pixi stage
     var stage = new PIXI.Stage(0x33CCFF);
@@ -122,8 +128,12 @@
         //////////////////////////////////////////////
         //		LOAD     							//
         //////////////////////////////////////////////
-        function createSprite(frameName, options) {
-            return _.deepExtend(PIXI.Sprite.fromImage(frameName, false, PIXI.scaleModes.NEAREST), options || {});
+        function createSprite(frameName) {
+            return PIXI.Sprite.fromImage(frameName, false, PIXI.scaleModes.NEAREST);
+        }
+
+        function createTexture(imageName) {
+            return PIXI.Texture.fromImage(imageName, false, PIXI.scaleModes.NEAREST);
         }
 
         var Animation = function (settings) {
@@ -258,6 +268,12 @@
                 return this.root.rotation;
             },
             set: function (value) {
+                while (value < 0) {
+                    value += Math.PI * 2;
+                }
+                while (value > Math.PI*2) {
+                    value -= Math.PI * 2;
+                }
                 this.root.rotation = value;
             }
         });
@@ -269,7 +285,14 @@
             this.root = new PIXI.DisplayObjectContainer();
             stage.addChild(this.root);
             this.position = this.root.position;
+            this.pivot = this.root.pivot;
             updateFuncs.push(proxy(this.update, this));
+            this.namePlate = new PIXI.Text(this.name || 'Entity');
+            this.namePlate.position = this.position;
+            this.namePlate.anchor.x = 0.5;
+            this.namePlate.anchor.y = -0.5;
+            this.namePlate.visible = false;
+            stage.addChild(this.namePlate);
             this._init();
         };
         Entity.prototype.load = function () {
@@ -302,58 +325,178 @@
         };
 
 
-        var frog = new Entity();
-            frog._init = function () {
-                this.target = new PIXI.Point();
+        var Frog = function () {
+            Entity.call(this);
+        };
+
+        Frog.prototype = Object.create(Entity.prototype);
+        Frog.prototype.constructor = Frog;
+
+        Frog.prototype._init = function () {
+            this.target = new PIXI.Point();
+            this.follow = false;
+            inputHandler.on('clickstart', proxy(function (event) {
+                this.target.set(event.data.global.x, event.data.global.y);
+                this.follow = true;
+            }, this));
+            inputHandler.on('clickend', proxy(function (event) {
                 this.follow = false;
-                inputHandler.on('clickstart', proxy(function (event) {
-                    this.target.set(event.data.global.x, event.data.global.y);
-                    this.follow = true;
-                }, this));
-                inputHandler.on('clickend', proxy(function (event) {
-                    this.follow = false;
-                }, this));
-                inputHandler.on('drag', proxy(function (event) {
-                    this.target.set(event.data.global.x, event.data.global.y);
-                }, this));
-                this.root.pivot.set(12.5, 12.5);
-                this.position.set(100, 100);
-                this.turnSpeed = 3.0;
-            };
-            frog._load = function () {
-                var animation = new Animation({
-                    name: 'walk_up',
-                    frames: [
-                        new Frame(createSprite('frog_up_sit.png'), 100),
-                        new Frame(createSprite('frog_up_jump.png'), 100),
-                        new Frame(createSprite('frog_up_land.png'), 100)
-                    ],
-                    type: Animation.types.LOOP
-                });
-                this.addAnimation(animation);
+            }, this));
+            inputHandler.on('drag', proxy(function (event) {
+                this.target.set(event.data.global.x, event.data.global.y);
+            }, this));
+            this.root.pivot.set(12.5, 12.5);
+            this.position.set(100, 100);
+            this.turnSpeed = 3.0;
+        };
 
-                animation = new Animation({
-                    name: 'idle_up',
-                    frames: [
-                        new Frame(createSprite('frog_up_sit.png'), 1000)
-                    ],
-                    type: Animation.types.LINEAR
-                });
-                this.addAnimation(animation);
+        Frog.prototype._load = function () {
+            var animation = new Animation({
+                name: 'walk_up',
+                frames: [
+                    new Frame(createSprite('frog_up_sit.png'), 100),
+                    new Frame(createSprite('frog_up_jump.png'), 100),
+                    new Frame(createSprite('frog_up_land.png'), 100)
+                ],
+                type: Animation.types.LOOP
+            });
+            this.addAnimation(animation);
 
+            animation = new Animation({
+                name: 'idle_up',
+                frames: [
+                    new Frame(createSprite('frog_up_sit.png'), 1000)
+                ],
+                type: Animation.types.LINEAR
+            });
+            this.addAnimation(animation);
+
+            this.setAnimation('idle_up');
+            this.root.scale.x = 2.0;
+            this.root.scale.y = 2.0;
+        };
+
+        Frog.prototype._update = function (delta, now) {
+            var diff = new PIXI.Point(this.target.x - this.x, this.target.y - this.y);
+            var dir = Math.atan2(diff.y, diff.x) + Math.PI/2;
+
+            if (dir < 0) {
+                dir += Math.PI*2;
+            }
+            if (dir > Math.PI*2) {
+                dir -= Math.PI*2;
+            }
+
+            var angle = dir - this.rotation;
+
+            if (angle > Math.PI) {
+                this.rotation += Math.PI * 2;
+                angle -= Math.PI * 2;
+            }
+
+            if (angle < -Math.PI) {
+                this.rotation -= Math.PI * 2;
+                angle += Math.PI * 2;
+            }
+
+            this.rotation += angle * this.turnSpeed * delta / 1000.0;
+            this.namePlate.setText(this.rotation.toFixed(2));
+            if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
+                this.setAnimation('walk_up');
+                this.x += Math.sin(this.rotation) * 2.0;
+                this.y -= Math.cos(this.rotation) * 2.0;
+            } else {
                 this.setAnimation('idle_up');
+            }
+        };
 
-                this.namePlate = new PIXI.Text('Frog');
-                //this.namePlate.position.x = 10;
-                //this.namePlate.position.y = 20;
-                this.namePlate.position = this.position;
-                this.namePlate.anchor.x = 0.5;
-                //this.root.addChild(this.namePlate);
-                stage.addChild(this.namePlate);
-            };
-            frog._update = function (delta, now) {
+        var Lilypad = function () {
+            Entity.call(this);
+        };
+        Lilypad.prototype = Object.create(Entity.prototype);
+        Lilypad.prototype.constructor = Lilypad;
+        Lilypad.prototype._init = function () {
+            this.position.x = Math.random() * (gameWidth - 84) + 42;
+            this.position.y = Math.random() * (gameHeight - 84) + 42;
+            //this.rotation = Math.random() * Math.PI * 2.0;
+        };
+        Lilypad.prototype._load = function () {
+            switch (Math.floor(Math.random() * 4)) {
+                case 0:
+                    this.texture = createTexture('lilypad_01.png');
+                    break;
+                case 1:
+                    this.texture = createTexture('lilypad_02.png');
+                    break;
+                case 2:
+                    this.texture = createTexture('lilypad_f_01.png');
+                    break;
+                case 3:
+                    this.texture = createTexture('lilypad_f_02.png');
+                    break;
+            }
+            this.points = [];
+            var segs = 10;
+            var length = this.texture.width / segs;
+            for (var i = 0; i < segs; i++) {
+                this.points.push(new PIXI.Point(length * i, 0));
+            }
+            var spine = new PIXI.Rope(this.texture, this.points);
+            this.root.addChild(spine);
+        };
+        Lilypad.prototype._update = function (delta, now) {
+
+            for (var i = 0; i < this.points.length; i++) {
+                //this.points[i].x += Math.cos(i * 0.01 + this.tick/10.0);
+                this.points[i].y = Math.sin((i * 0.3 + this.y) + this.tick/10.0) * 0.5;
+            }
+        };
+
+        var Boss = function () {
+            Entity.call(this);
+        };
+        Boss.prototype = Object.create(Entity.prototype);
+        Boss.prototype.constructor = Boss;
+        Boss.prototype._init = function () {
+            this.target = new PIXI.Point();
+            this.follow = false;
+            inputHandler.on('clickstart', proxy(function (event) {
+                this.target.set(event.data.global.x, event.data.global.y);
+                this.follow = true;
+            }, this));
+            inputHandler.on('clickend', proxy(function (event) {
+                this.follow = false;
+            }, this));
+            inputHandler.on('drag', proxy(function (event) {
+                if (this.follow) {
+                    this.target.set(event.data.global.x, event.data.global.y);
+                }
+            }, this));
+            this.animTick = 0;
+        };
+        Boss.prototype._load = function () {
+            //this.sprite = createSprite('nasty_boss.png');
+            this.texture = createTexture('nasty_boss.png');
+            this.points = [];
+            var segs = 20;
+            var length = this.texture.width / segs;
+            console.log(this.texture.width);
+            for (var i = 0; i < segs; i++) {
+                this.points.push(new PIXI.Point(length * i, 0));
+            }
+            console.log(this.points);
+            this.spine = new PIXI.Rope(this.texture, this.points);
+            this.root.addChild(this.spine);
+            //this.root.addChild(this.sprite);
+            //this.rotation = Math.PI;
+            this.pivot.x = 100;
+            this.position.x = 200;
+            this.position.y = 200;
+        };
+        Boss.prototype._update = function (delta, now) {
+            if (this.follow) {
                 var diff = new PIXI.Point(this.target.x - this.x, this.target.y - this.y);
-                var dir = Math.atan2(diff.y, diff.x) + Math.PI/2;
+                var dir = Math.atan2(diff.y, diff.x);
 
                 if (dir < 0) {
                     dir += Math.PI*2;
@@ -374,19 +517,34 @@
                     angle += Math.PI * 2;
                 }
 
-                this.rotation += angle * this.turnSpeed * delta / 1000.0;
+                this.rotation += angle * delta / 1000.0;
+                this.namePlate.setText(this.rotation.toFixed(2));
 
-                if (this.follow && (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0)) {
-                    this.setAnimation('walk_up');
-                    this.x += Math.sin(this.root.rotation) * 2.0;
-                    this.y -= Math.cos(this.root.rotation) * 2.0;
-                } else {
-                    this.setAnimation('idle_up');
+                if (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0) {
+                    this.x += Math.sin(this.rotation + Math.PI/2) * 2.0;
+                    this.y -= Math.cos(this.rotation + Math.PI/2) * 2.0;
+                    this.animTick++;
+                    for (var i = 1; i < 20; i++) {
+                        this.points[i].x += Math.cos(i * 0.01 + this.animTick/10.0);
+                        this.points[i].y = Math.sin(i * 0.3 + this.animTick/10.0) * 20.0;
+                    }
                 }
-            };
+            }
+        };
 
+        for (var i = 0; i < 100; i++) {
+            var l = new Lilypad();
+            l.init();
+            l.load();
+        }
+
+        var frog = new Frog();
         frog.init();
         frog.load();
+
+        var boss = new Boss();
+        boss.init();
+        boss.load();
     }
 
     var lastTimeMsec = null;
