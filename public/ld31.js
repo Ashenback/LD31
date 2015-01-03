@@ -43,8 +43,8 @@
 
     // create a renderer instance.
     var
-        gameWidth = window.innerWidth,
-        gameHeight = window.innerHeight,
+        gameWidth = window.innerWidth / 2,
+        gameHeight = window.innerHeight / 2,
         rendererOptions = {
             antialias: false,
             autoResize: false,
@@ -57,7 +57,11 @@
 
 
     function resize() {
-        renderer.resize(window.innerWidth, window.innerHeight);
+        gameWidth = window.innerWidth / 2;
+        gameHeight = window.innerHeight / 2;
+        renderer.resize(gameWidth, gameHeight);
+        renderer.view.style.width = window.innerWidth;
+        renderer.view.style.height = window.innerHeight;
     }
 
     window.onresize = resize;
@@ -416,8 +420,8 @@
         Lilypad.prototype = Object.create(Entity.prototype);
         Lilypad.prototype.constructor = Lilypad;
         Lilypad.prototype._init = function () {
-            this.position.x = Math.random() * (gameWidth - 84) + 42;
-            this.position.y = Math.random() * (gameHeight - 84) + 42;
+            this.position.x = Math.random() * (gameWidth);
+            this.position.y = Math.random() * (gameHeight);
             //this.rotation = Math.random() * Math.PI * 2.0;
         };
         Lilypad.prototype._load = function () {
@@ -528,7 +532,7 @@
                     this.head.y = -Math.cos(angle - Math.PI/2) * this.texture.height / Math.PI;
                     var length = this.texture.width / this.points.length;
                     for (var i = 1; i < 20; i++) {
-                        this.points[i].y = this.points[i-1].y * i / 20 * 2.0;
+                        this.points[i].y = Math.sin(i * 0.3 + this.animTick/10.0) * 8.0;
                         //this.points[i].y = this.points[i-1].y * 0.9;
                         //this.points[i].y = Math.sin(i * 0.3 + this.animTick/10.0) * 4.0;
                     }
