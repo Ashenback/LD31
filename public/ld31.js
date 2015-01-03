@@ -485,7 +485,7 @@
             this.spine = new PIXI.Rope(this.texture, this.points);
             this.head = this.points[0];
             this.root.addChild(this.spine);
-            this.pivot.x = 100;
+            //this.pivot.x = 100;
             this.position.x = 200;
             this.position.y = 200;
         };
@@ -513,12 +513,14 @@
                     angle += Math.PI * 2;
                 }
 
-                this.rotation += angle * delta / 1000.0;
+                var angleDelta = angle * delta / 1000.0;
+                var newAngle = this.rotation + angleDelta;
+                this.rotation = newAngle;
                 this.namePlate.setText(this.rotation.toFixed(2));
 
                 if (Math.abs(diff.x) > 0 || Math.abs(diff.y) > 0) {
-                    //this.x += Math.sin(this.rotation - Math.PI/2) * 2.0;
-                    //this.y -= Math.cos(this.rotation - Math.PI/2) * 2.0;
+                    this.x += Math.sin(this.rotation - Math.PI/2) * 2.0;
+                    this.y -= Math.cos(this.rotation - Math.PI/2) * 2.0;
                     this.animTick++;
                     //this.points[0].x += Math.cos(0.01 + this.animTick/10.0);
                     //this.points[0].y = Math.sin(0.3 + this.animTick/10.0) * 20.0;
@@ -526,9 +528,9 @@
                     this.head.y = -Math.cos(angle - Math.PI/2) * this.texture.height / Math.PI;
                     var length = this.texture.width / this.points.length;
                     for (var i = 1; i < 20; i++) {
-                        this.points[i].y = this.points[i-1].y - Math.cos((angle - Math.PI/2) * i/20.0 * Math.PI) * 10.0;
+                        this.points[i].y = this.points[i-1].y * i / 20 * 2.0;
                         //this.points[i].y = this.points[i-1].y * 0.9;
-                        //this.points[i].x = i * length;//Math.sin(i * 0.3 + this.animTick/10.0) * 2.0;
+                        //this.points[i].y = Math.sin(i * 0.3 + this.animTick/10.0) * 4.0;
                     }
                 }
             }
