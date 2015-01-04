@@ -439,16 +439,6 @@
                     this.sprite = createSprite('lilypad_f_02.png');
                     break;
             }
-            /*
-            this.points = [];
-            var segs = 3;
-            var length = this.texture.width / segs;
-            for (var i = 0; i < segs; i++) {
-                this.points.push(new PIXI.Point(length * i, 0));
-            }
-            var spine = new PIXI.Rope(this.texture, this.points);
-            this.root.addChild(spine);
-            */
             this.pivot.x = this.sprite.width / 2;
             this.pivot.y = this.sprite.height / 2;
             this.root.addChild(this.sprite);
@@ -456,12 +446,6 @@
         Lilypad.prototype._update = function (delta, now) {
             this.sprite.y = Math.sin(this.y + this.tick/10.0) * 0.5;
             this.rotation = Math.cos(this.y + this.tick/10.0) * 0.02;
-            /*
-            for (var i = 0; i < this.points.length; i++) {
-                //this.points[i].x += Math.cos(i * 0.01 + this.tick/10.0);
-                this.points[i].y = Math.sin((i * 0.3 + this.y) + this.tick/10.0) * 0.5;
-            }
-            */
         };
 
         var Boss = function () {
