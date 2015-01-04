@@ -43,8 +43,8 @@
 
     // create a renderer instance.
     var
-        gameWidth = window.innerWidth / 2,
-        gameHeight = window.innerHeight / 2,
+        gameWidth = 800,
+        gameHeight = gameWidth / (window.innerWidth / window.innerHeight),
         rendererOptions = {
             antialias: false,
             autoResize: false,
@@ -57,9 +57,6 @@
 
 
     function resize() {
-        gameWidth = window.innerWidth / 2;
-        gameHeight = window.innerHeight / 2;
-        renderer.resize(gameWidth, gameHeight);
         renderer.view.style.width = window.innerWidth;
         renderer.view.style.height = window.innerHeight;
     }
@@ -114,20 +111,7 @@
             return _eventTarget;
         })();
 
-
-        // Desktop
-        var mouse = {x: 0, y: 0};
-        document.addEventListener('mousemove', function (event) {
-            mouse.x = (event.clientX / window.innerWidth );
-            mouse.y = (event.clientY / window.innerHeight);
-        }, false);
-        var keys = [];
-        document.addEventListener('keydown', function (event) {
-            keys[event.keyCode] = true;
-        });
-        document.addEventListener('keyup', function (event) {
-            keys[event.keyCode] = false;
-        });
+        var map = [];
 
         //////////////////////////////////////////////
         //		LOAD     							//
@@ -328,7 +312,6 @@
             }
         };
 
-
         var Frog = function () {
             Entity.call(this);
         };
@@ -420,9 +403,7 @@
         Lilypad.prototype = Object.create(Entity.prototype);
         Lilypad.prototype.constructor = Lilypad;
         Lilypad.prototype._init = function () {
-            this.position.x = Math.random() * (gameWidth);
-            this.position.y = Math.random() * (gameHeight);
-            //this.rotation = Math.random() * Math.PI * 2.0;
+            this.rotationOffset = Math.random() * Math.PI * 2.0;
         };
         Lilypad.prototype._load = function () {
             switch (Math.floor(Math.random() * 4)) {
@@ -445,7 +426,7 @@
         };
         Lilypad.prototype._update = function (delta, now) {
             this.sprite.y = Math.sin(this.y + this.tick/10.0) * 0.5;
-            this.rotation = Math.cos(this.y + this.tick/10.0) * 0.02;
+            this.rotation = this.rotationOffset + Math.cos(this.y + this.tick/10.0) * 0.02;
         };
 
         var Boss = function () {
@@ -457,16 +438,6 @@
             this.target = new PIXI.Point();
             this.follow = true;
             this.animTick = 0;
-            inputHandler.on('clickstart', proxy(function (event) {
-                this.target.set(event.data.global.x, event.data.global.y);
-                this.follow = true;
-            }, this));
-            inputHandler.on('clickend', proxy(function (event) {
-                //this.follow = false;
-            }, this));
-            inputHandler.on('drag', proxy(function (event) {
-                this.target.set(event.data.global.x, event.data.global.y);
-            }, this));
         };
         Boss.prototype._load = function () {
             this.texture = createTexture('nasty_boss.png');
@@ -535,10 +506,22 @@
             this.target = point;
         };
 
-        for (var i = 0; i < 100; i++) {
-            var l = new Lilypad();
-            l.init();
-            l.load();
+        var gridSize = 10;
+        var offX = (gameWidth % gridSize) / 2;
+        var offY = (gameHeight % gridSize) / 2;
+
+        for (var y = 0; y < gridSize; y++) {
+            var yy = gameHeight / gridSize * y;
+            for (var x = 0; x < gridSize; x++) {
+                map[x + y * gridSize] = false;
+                var xx = gameWidth / gridSize * x;
+                var l = new Lilypad();
+                l.init();
+                l.load();
+                l.x = xx + l.sprite.width / 2 + gridSize / 2 + offX;
+                l.y = yy + l.sprite.height / 2 + gridSize / 2 + offY;
+                map[x + y * gridSize] = true;
+            }
         }
 
         var frog = new Frog();
@@ -548,7 +531,7 @@
         var boss = new Boss();
         boss.init();
         boss.load();
-        //boss.setTarget(frog.position);
+        boss.setTarget(frog.position);
     }
 
     var lastTimeMsec = null;
