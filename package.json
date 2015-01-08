@@ -9,7 +9,9 @@
     "hookshot": "*",
     "mongoose": "*",
     "socket.io": "*",
-    "sha1": "*"
+    "sha1": "*",
+    "express-asset-manager": "*",
+    "ejs": "*"
   },
   "devDependencies": {},
   "scripts": {
