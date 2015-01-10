@@ -14,7 +14,7 @@ var genCookie = function () {
 
 // Set up app with Express framework
 var app = express();
-app.set('env', 'production');
+//app.set('env', 'production');
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
