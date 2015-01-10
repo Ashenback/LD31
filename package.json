@@ -11,7 +11,9 @@
     "socket.io": "*",
     "sha1": "*",
     "express-asset-manager": "*",
-    "ejs": "*"
+    "ejs": "*",
+    "express-minify": "*",
+    "compression": "~1.0.8"
   },
   "devDependencies": {},
   "scripts": {

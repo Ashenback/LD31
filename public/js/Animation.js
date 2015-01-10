@@ -94,5 +94,3 @@ Animation.prototype = {
         }
     }
 }
-
-module.export = Animation;

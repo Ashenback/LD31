@@ -3,7 +3,9 @@ var express = require('express'),
     io = require('socket.io'),
     mongoose = require('mongoose'),
     hookshot = require('hookshot'),
-    sha1 = require('sha1');
+    sha1 = require('sha1'),
+    compression = require('compression'),
+    minify = require('express-minify');
 
 var genCookie = function () {
     var randomNumber=Math.random().toString();
@@ -12,7 +14,7 @@ var genCookie = function () {
 
 // Set up app with Express framework
 var app = express();
-//app.set('env', 'production');
+app.set('env', 'production');
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
@@ -27,8 +29,9 @@ var server = app.listen(process.env.PORT || 3300, function() {
 
 // Configure the app
 app.use(cookieParser());
+
 // set a cookie
-app.use(function (req, res, next) {
+app.use('/', function (req, res, next) {
     // check if client sent cookie
     var cookie = req.cookies.UID;
     if (cookie === undefined) {
@@ -55,11 +58,17 @@ var assets = {
         ]
     },
     "game.js" : {
-        type: "requirejs",
+        type: "js",
         dir: "js",
-        main: "game.js",
-        lib: "../lib/require.js",
-        includeLib: false
+        files: [
+            "game.js",
+            "Animation.js",
+            "Frame.js",
+            "Entity.js",
+            "Frog.js",
+            "Lilypad.js",
+            "Boss.js"
+        ]
     },
     "style.css" : {
         type: "css",
@@ -80,6 +89,11 @@ var assetManagerConfig = {
 
 app.use(require("express-asset-manager")(assets, assetManagerConfig, function () {
     console.log('callback called', arguments);
+}));
+
+app.use(compression());
+app.use(minify({
+    cache: __dirname + '/cache'
 }));
 
 if (app.get("env") === "development") {
